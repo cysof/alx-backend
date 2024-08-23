@@ -1,30 +1,29 @@
-#!/usr/bin/env python3
-
-""" LIFO cache module that inherits from BaseCaching and is a caching system
-Must use self.cache_data - dictionary from the parent class BaseCaching
-LIFO algorithm must be used to manage the cache
-"""
+#!/usr/bin/python3
+"""Create LIFOCache class that inherits from BaseCaching"""
 BaseCaching = __import__('base_caching').BaseCaching
 
+
 class LIFOCache(BaseCaching):
+    """ Define LIFOCache """
 
     def __init__(self):
+        """ Initialize LIFOCache """
+        self.stack = []
         super().__init__()
-        self.cache_keys = []
 
     def put(self, key, item):
-
-        if key is None or item is None:
-            return
-        if len(self.cache_data) >= BaseCaching.MAX_ITEMS:
-            last_item = self.cache_keys.pop()
-            del self.cache_data[last_item]
-            print(f"DISCARD: {last_item}")
-        self.cache_keys.append(key)
-        self.cache_data[key] = item
+        """ Assign the item to the dictionary """
+        if key and item:
+            if self.cache_data.get(key):
+                self.stack.remove(key)
+            while len(self.stack) >= self.MAX_ITEMS:
+                delete = self.stack.pop()
+                self.cache_data.pop(delete)
+                print('DISCARD: {}'.format(delete))
+            self.stack.append(key)
+            self.cache_data[key] = item
 
     def get(self, key):
-        if key is None or key not in self.cache_data:
-            return None
+        """ Return the value associated with the given key """
         return self.cache_data.get(key)
-
+    
