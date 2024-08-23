@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
-""" Basic Flask Application
-"""
+""" 0-app module """
+from flask import Flask
+from routes.routes_0 import app_routes
 
-from flask import Flask, render_template
 
-
-# Initializing Flask Application
 app = Flask(__name__)
 
-# Define the route for the root URL
+app.register_blueprint(app_routes)
 
-@app.route('/')
-def index():
-    """ Rnder the index.html template"""
-    return render_template('0-index.html')
 
-# Main entry to the application
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port="5000")

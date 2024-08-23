@@ -1,52 +1,12 @@
 #!/usr/bin/env python3
+""" Route module for the API - Mock logging in"""
 
-""" Basic Flask app with mocked user login system.
-Instantiate the Babel object and configure the app to support
-multiple languages.
-Create a Config class with the following attributes:
-    LANGUAGES(list): List of supported languages.
-    BABEL_DEFAULT_LOCALE(str): Default language for the app.
-    BABEL_DEFAULT_TIMEZONE(str): Default timezone for the app.
-Define the route for the root URL.
-Create a get_locale function with the babel.localeselector decorator.
-Use request.accept_languages to determine the best match
-with our supported languages.
-Implement a mocked user login system.
-"""
 
-from flask import (
-    Flask,
-    render_template,
-    request,
-    g
-)
+from flask import Flask, request, render_template, g
 from flask_babel import Babel
+from os import getenv
+from typing import Union
 
-
-# Initialize the Flask application
-app = Flask(__name__)
-# Instantiate the Babel object
-babel = Babel(app)
-
-
-# Create the Config class
-class Config:
-    """
-    Configuration class for the application.
-    Attributes:
-        LANGUAGES (list): List of supported languages.
-        BABEL_DEFAULT_LOCALE (str): Default language for the app.
-        BABEL_DEFAULT_TIMEZONE (str): Default timezone for the app.
-    """
-    LANGUAGES = ["en", "fr"]
-    BABEL_DEFAULT_LOCALE = 'en'
-    BABEL_DEFAULT_TIMEZONE = 'UTC'
-
-
-# Apply the configuration to the Flask app
-app.config.from_object(Config)
-
-# User table to mock a database
 users = {
     1: {"name": "Balou", "locale": "fr", "timezone": "Europe/Paris"},
     2: {"name": "Beyonce", "locale": "en", "timezone": "US/Central"},
@@ -54,48 +14,60 @@ users = {
     4: {"name": "Teletubby", "locale": None, "timezone": "Europe/London"},
 }
 
+app = Flask(__name__)
+babel = Babel(app)
 
-def get_user():
-    """_summary_
-    Returns:
-        _type_: _description_
+
+class Config(object):
+    """ Setup - Babel configuration """
+    LANGUAGES = ['en', 'fr']
+    # these are the inherent defaults just btw
+    BABEL_DEFAULT_LOCALE = 'en'
+    BABEL_DEFAULT_TIMEZONE = 'UTC'
+
+
+# set the above class object as the configuration for the app
+app.config.from_object('5-app.Config')
+
+
+@app.route('/', methods=['GET'], strict_slashes=False)
+def index() -> str:
+    """ GET /
+    Return: 4-index.html
     """
-    id = request.args.get('login_as')
-    if id is not None and int(id) in users.keys():
-        return users.get(int(id))
-    return None
+    return render_template('5-index.html')
+
+
+@babel.localeselector
+def get_locale() -> str:
+    """ Determines best match for supported languages """
+    # check if there is a locale parameter/query string
+    if request.args.get('locale'):
+        locale = request.args.get('locale')
+        if locale in app.config['LANGUAGES']:
+            return locale
+    else:
+        return request.accept_languages.best_match(app.config['LANGUAGES'])
+
+
+def get_user() -> Union[dict, None]:
+    """ Returns user dict if ID can be found """
+    if request.args.get('login_as'):
+        # have to type cast  the param to be able to search the user dict
+        user = int(request.args.get('login_as'))
+        if user in users:
+            return users.get(user)
+    else:
+        return None
 
 
 @app.before_request
 def before_request():
-    """Execute before each request to retrieve user information.
-    Retreives the user and assigns it to the global variable g.user.
-    """
-    user = get_user()
-    g.user = user
+    """ Finds user and sets as global on flask.g.user """
+    g.user = get_user()
 
 
-@babel.localeselector
-def get_locale():
-    """Determine the best match for supported languages."""
-    # Check if the locale parameter is present in the request
-    locale = request.args.get('locale')
-    if locale in app.config['LANGUAGES']:
-        return locale
-    return request.accept_languages.best_match(app.config['LANGUAGES'])
-
-
-babel.init_app(app)  # No 'localeselector' attribute here
-
-
-# Define the route for the root URL
-@app.route('/', strict_slashes=False)
-def index() -> str:
-    """Render the index page."""
-    return render_template('5-index.html')
-
-
-# Main entry point of the application
-if __name__ == '__main__':
-    # Run the Flask app in debug mode
-    app.run(port="5000", host="0.0.0.0", debug=True)
+if __name__ == "__main__":
+    host = getenv("API_HOST", "0.0.0.0")
+    port = getenv("API_PORT", "5000")
+    app.run(host=host, port=port)
